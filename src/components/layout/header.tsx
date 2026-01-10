@@ -2,14 +2,35 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Briefcase, Settings } from "lucide-react";
 import { ThemeToggle } from "./theme-toggle";
 import { LanguageSwitcher } from "./language-switcher";
 import { LogoutButton } from "./logout-button";
 import { Button } from "@/components/ui/button";
+import { createClient } from "@/lib/supabase/client";
 
 export function Header() {
   const pathname = usePathname();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    const supabase = createClient();
+
+    // Check initial auth state
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setIsAuthenticated(!!user);
+    });
+
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      setIsAuthenticated(!!session?.user);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
@@ -23,7 +44,7 @@ export function Header() {
               JobTrack
             </span>
             <span className="text-[10px] text-muted-foreground leading-tight">
-              Application Manager
+              Job Application Manager
             </span>
           </div>
         </Link>
@@ -31,16 +52,20 @@ export function Header() {
         <div className="flex items-center gap-2">
           <LanguageSwitcher />
           <ThemeToggle />
-          <Link href="/settings">
-            <Button
-              variant={pathname === "/settings" ? "secondary" : "ghost"}
-              size="icon"
-              className="h-9 w-9"
-            >
-              <Settings className="h-4 w-4" />
-            </Button>
-          </Link>
-          <LogoutButton />
+          {isAuthenticated && (
+            <>
+              <Link href="/settings">
+                <Button
+                  variant={pathname === "/settings" ? "secondary" : "ghost"}
+                  size="icon"
+                  className="h-9 w-9"
+                >
+                  <Settings className="h-4 w-4" />
+                </Button>
+              </Link>
+              <LogoutButton />
+            </>
+          )}
         </div>
       </div>
     </header>
