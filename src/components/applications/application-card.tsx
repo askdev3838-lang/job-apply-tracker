@@ -171,7 +171,7 @@ export function ApplicationCard({ application }: ApplicationCardProps) {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem asChild>
+                    <DropdownMenuItem asChild onClick={(e) => e.stopPropagation()}>
                       <Link href={`/applications/${application.id}/edit`}>
                         <Pencil className="mr-2 h-4 w-4" />
                         {t("common.edit")}
@@ -180,7 +180,10 @@ export function ApplicationCard({ application }: ApplicationCardProps) {
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
                       className="text-destructive focus:text-destructive"
-                      onClick={() => setShowDeleteDialog(true)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowDeleteDialog(true);
+                      }}
                     >
                       <Trash2 className="mr-2 h-4 w-4" />
                       {t("common.delete")}

@@ -606,8 +606,14 @@ export function ApplicationForm({
           </Button>
         </Link>
         <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {t("common.save")}
+          {isSubmitting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              {t("common.save")}
+            </>
+          ) : (
+            t("common.save")
+          )}
         </Button>
       </div>
     </form>
