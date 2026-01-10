@@ -110,8 +110,20 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="h-[calc(100vh-4rem)] flex overflow-hidden px-4 pb-10 gap-4">
-      {/* Left side - Image */}
+    <div className="min-h-[calc(100vh-4rem)] flex overflow-hidden lg:px-4 lg:pb-10 gap-4 relative">
+      {/* Mobile background image */}
+      <div className="fixed inset-0 lg:hidden -z-10">
+        <Image
+          src="/hero.jpg"
+          alt="Background"
+          fill
+          className="object-cover object-center"
+          priority
+        />
+        <div className="absolute inset-0 bg-black/40" />
+      </div>
+
+      {/* Left side - Image (desktop only) */}
       <div className="hidden lg:flex lg:w-1/2 relative bg-muted rounded-2xl overflow-hidden">
         <Image
           src="/hero.jpg"
@@ -138,7 +150,7 @@ export default function LoginPage() {
 
       {/* Right side - Login form */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-4 sm:p-8 overflow-y-auto">
-        <Card className="w-full max-w-md border-0 shadow-none lg:border lg:shadow-sm">
+        <Card className="w-full max-w-md border-0 shadow-none lg:border lg:shadow-sm bg-background/80 backdrop-blur-md lg:bg-background lg:backdrop-blur-none">
           <CardHeader className="text-center">
             <div className="flex items-center justify-center gap-2 mb-4 lg:hidden">
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary">
