@@ -1,36 +1,219 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🎯 Job Application Tracker
 
-## Getting Started
+A modern, full-stack job application tracking system built with Next.js 16 and Supabase. Keep track of your job search journey with an intuitive interface, real-time updates, and powerful filtering capabilities.
 
-First, run the development server:
+![Next.js](https://img.shields.io/badge/Next.js-16.1.1-black?style=for-the-badge&logo=next.js)
+![React](https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=for-the-badge&logo=typescript)
+![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?style=for-the-badge&logo=supabase)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind-4-06B6D4?style=for-the-badge&logo=tailwindcss)
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## ✨ Features
+
+### 🔐 Authentication
+
+- **Email/Password Authentication** - Secure sign up and sign in
+- **OAuth Integration** - Google and GitHub social login
+- **Protected Routes** - Middleware-based route protection
+- **Row Level Security** - Each user can only access their own data
+
+### 📋 Application Management
+
+- **CRUD Operations** - Create, read, update, and delete applications
+- **Status Tracking** - Track applications through 8 different stages:
+  - Applied → Test Case → HR Interview → Technical Interview → Management Interview → Offer → Accepted/Rejected
+- **Pin Important Applications** - Keep critical applications at the top
+- **Contact Management** - Store recruiter and interviewer contact information
+- **Notes & Cover Letters** - Keep detailed notes for each application
+
+### 🔍 Search & Filter
+
+- **Real-time Search** - Instant search across company names and positions
+- **Multi-filter Support** - Filter by status, work type, source, and more
+- **Sort Options** - Sort by date, company name, or status
+- **URL State Management** - Filters persist in URL for easy sharing
+
+### 🌍 Internationalization
+
+- **Multi-language Support** - English and Turkish translations
+- **Dynamic Language Switching** - Change language without page reload
+
+### 🎨 UI/UX
+
+- **Dark/Light Mode** - System-aware theme with manual toggle
+- **Responsive Design** - Works seamlessly on desktop, tablet, and mobile
+- **Modern UI Components** - Built with shadcn/ui and Radix primitives
+- **Toast Notifications** - Real-time feedback for user actions
+
+## 🛠️ Tech Stack
+
+### Frontend
+
+| Technology          | Purpose                         |
+| ------------------- | ------------------------------- |
+| **Next.js 16**      | React framework with App Router |
+| **React 19**        | UI library with latest features |
+| **TypeScript**      | Type-safe development           |
+| **Tailwind CSS 4**  | Utility-first styling           |
+| **shadcn/ui**       | Accessible component library    |
+| **Radix UI**        | Headless UI primitives          |
+| **Zustand**         | Lightweight state management    |
+| **React Hook Form** | Performant form handling        |
+| **Zod**             | Schema validation               |
+
+### Backend & Database
+
+| Technology             | Purpose                 |
+| ---------------------- | ----------------------- |
+| **Supabase**           | Backend as a Service    |
+| **PostgreSQL**         | Relational database     |
+| **Row Level Security** | Data isolation per user |
+| **Supabase Auth**      | Authentication system   |
+
+### Other Libraries
+
+| Library          | Purpose              |
+| ---------------- | -------------------- |
+| **next-intl**    | Internationalization |
+| **next-themes**  | Theme management     |
+| **date-fns**     | Date formatting      |
+| **nuqs**         | URL query state      |
+| **Lucide React** | Icon library         |
+| **Sonner**       | Toast notifications  |
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- Node.js 18+
+- npm or yarn
+- Supabase account
+
+### Installation
+
+1. **Clone the repository**
+
+   ```bash
+   git clone https://github.com/berkinduz/job-apply-tracker.git
+   cd job-apply-tracker
+   ```
+
+2. **Install dependencies**
+
+   ```bash
+   npm install
+   ```
+
+3. **Set up environment variables**
+
+   Create a `.env.local` file in the root directory:
+
+   ```env
+   NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+   SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+   ```
+
+4. **Set up Supabase database**
+
+   Run the SQL schema in your Supabase SQL Editor:
+
+   ```bash
+   # The schema is available in supabase-schema.sql
+   ```
+
+5. **Run the development server**
+
+   ```bash
+   npm run dev
+   ```
+
+6. **Open your browser**
+
+   Navigate to [http://localhost:3000](http://localhost:3000)
+
+## 📁 Project Structure
+
+```
+src/
+├── app/                    # Next.js App Router pages
+│   ├── applications/       # Application CRUD pages
+│   ├── auth/              # Auth callback handler
+│   ├── login/             # Authentication page
+│   └── settings/          # User settings
+├── components/
+│   ├── applications/      # Application-related components
+│   ├── layout/            # Header, navigation, theme toggle
+│   ├── providers/         # Context providers
+│   └── ui/                # shadcn/ui components
+├── lib/
+│   ├── supabase/          # Supabase client & services
+│   └── utils.ts           # Utility functions
+├── messages/              # i18n translation files
+├── store/                 # Zustand state management
+└── types/                 # TypeScript type definitions
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🗄️ Database Schema
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```sql
+-- Applications table
+CREATE TABLE applications (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id),
+  company_name TEXT NOT NULL,
+  position TEXT NOT NULL,
+  status TEXT NOT NULL,
+  work_type TEXT NOT NULL,
+  -- ... more fields
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+-- Row Level Security
+ALTER TABLE applications ENABLE ROW LEVEL SECURITY;
 
-## Learn More
+CREATE POLICY "Users can only see their own applications"
+  ON applications FOR SELECT
+  USING (auth.uid() = user_id);
+```
 
-To learn more about Next.js, take a look at the following resources:
+## 🎯 Why I Built This
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+As a developer actively searching for new opportunities, I found myself struggling to keep track of all my job applications across different platforms. Spreadsheets felt limiting, and existing tools didn't quite fit my workflow.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+This project solves a real problem I faced while also serving as a demonstration of my full-stack development capabilities:
 
-## Deploy on Vercel
+- **Modern React Patterns** - Server components, streaming, suspense
+- **Type Safety** - End-to-end TypeScript with Zod validation
+- **Authentication** - Implementing secure auth flows with multiple providers
+- **Database Design** - PostgreSQL with proper RLS policies
+- **State Management** - Combining server state with client-side stores
+- **Internationalization** - Building for a global audience
+- **Responsive Design** - Mobile-first approach with Tailwind CSS
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 🔮 Future Enhancements
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- [ ] Analytics dashboard with application statistics
+- [ ] Email reminders for follow-ups
+- [ ] Calendar integration for interview scheduling
+- [ ] Resume/CV attachment storage
+- [ ] AI-powered job matching suggestions
+- [ ] Export data to CSV/PDF
+- [ ] Browser extension for quick adding
+
+## 📄 License
+
+This project is open source and available under the [MIT License](LICENSE).
+
+## 👤 Author
+
+**Berkin Duz**
+
+- GitHub: [@berkinduz](https://github.com/berkinduz)
+
+---
+
+<div align="center">
+  <p>If you found this project helpful, please consider giving it a ⭐️</p>
+</div>
