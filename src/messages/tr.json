@@ -74,7 +74,10 @@
     "contactEmail": "E-posta",
     "contactPhone": "Telefon",
     "contactLinkedIn": "LinkedIn",
-    "contactNotes": "Notlar"
+    "contactNotes": "Notlar",
+    "notFound": "Başvuru bulunamadı",
+    "companyDetails": "Şirket Detayları",
+    "jobPosting": "İlanı Görüntüle"
   },
   "status": {
     "applied": "Başvuruldu",
@@ -167,6 +170,9 @@
     "fillAllFields": "Lütfen tüm alanları doldurun",
     "passwordMinLength": "Şifre en az 6 karakter olmalıdır",
     "passwordHint": "En az 6 karakter",
-    "checkEmail": "Doğrulama linki için e-postanızı kontrol edin"
+    "checkEmail": "Doğrulama linki için e-postanızı kontrol edin",
+    "preview": "İncele",
+    "previewTitle": "İş aramanızdaki karmaşayı önleyin",
+    "previewDesc": "Tablolar ve dağınık notlar arasında boğulmayı bırakın. Tüm iş başvurularınızı profesyonel bir panoda düzenleyin, takip edin ve yönetin."
   }
 }

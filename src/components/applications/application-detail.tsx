@@ -133,11 +133,11 @@ export function ApplicationDetail() {
   if (!application) {
     return (
       <div className="flex flex-col items-center justify-center py-16">
-        <p className="text-muted-foreground">Application not found</p>
+        <p className="text-muted-foreground">{t("application.notFound")}</p>
         <Link href="/" className="mt-4">
           <Button variant="outline">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Dashboard
+            {t("common.back")}
           </Button>
         </Link>
       </div>
@@ -275,7 +275,7 @@ export function ApplicationDetail() {
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <Building2 className="h-5 w-5" />
-                Company Details
+                {t("application.companyDetails")}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -306,7 +306,7 @@ export function ApplicationDetail() {
                     rel="noopener noreferrer"
                     className="text-primary hover:underline flex items-center gap-1"
                   >
-                    View Job Posting
+                    {t("application.jobPosting")}
                     <ExternalLink className="h-3 w-3" />
                   </a>
                 </div>
@@ -319,14 +319,14 @@ export function ApplicationDetail() {
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <Calendar className="h-5 w-5" />
-                Application Details
+                {t("application.applicationDetails")}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center gap-2 text-sm">
                 <Calendar className="h-4 w-4 text-muted-foreground" />
                 <span>
-                  Applied:{" "}
+                  {t("application.applicationDate")}:{" "}
                   {format(
                     new Date(application.applicationDate),
                     "MMMM d, yyyy"
@@ -336,20 +336,23 @@ export function ApplicationDetail() {
               {application.salaryExpectation && (
                 <div className="flex items-center gap-2 text-sm">
                   <DollarSign className="h-4 w-4 text-muted-foreground" />
-                  <span>Expected: {application.salaryExpectation}</span>
+                  <span>
+                    {t("application.salaryExpectation")}:{" "}
+                    {application.salaryExpectation}
+                  </span>
                 </div>
               )}
               <div className="flex items-center gap-2 text-sm">
                 <Clock className="h-4 w-4 text-muted-foreground" />
                 <span>
-                  Created:{" "}
+                  {t("application.createdAt")}:{" "}
                   {format(new Date(application.createdAt), "MMM d, yyyy HH:mm")}
                 </span>
               </div>
               <div className="flex items-center gap-2 text-sm">
                 <Clock className="h-4 w-4 text-muted-foreground" />
                 <span>
-                  Updated:{" "}
+                  {t("application.updatedAt")}:{" "}
                   {format(new Date(application.updatedAt), "MMM d, yyyy HH:mm")}
                 </span>
               </div>

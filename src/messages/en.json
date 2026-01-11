@@ -74,7 +74,10 @@
     "contactEmail": "Email",
     "contactPhone": "Phone",
     "contactLinkedIn": "LinkedIn",
-    "contactNotes": "Notes"
+    "contactNotes": "Notes",
+    "notFound": "Application not found",
+    "companyDetails": "Company Details",
+    "jobPosting": "View Job Posting"
   },
   "status": {
     "applied": "Applied",
@@ -167,6 +170,9 @@
     "fillAllFields": "Please fill in all fields",
     "passwordMinLength": "Password must be at least 6 characters",
     "passwordHint": "Minimum 6 characters",
-    "checkEmail": "Check your email for confirmation link"
+    "checkEmail": "Check your email for confirmation link",
+    "preview": "Preview",
+    "previewTitle": "Tame the chaos of your job search",
+    "previewDesc": "Stop drowning in spreadsheets and scattered notes. Organize, track,and manage all your job applications in one professional dashboard."
   }
 }
