@@ -46,11 +46,14 @@ export function StatusFilter() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" className="gap-2">
+        <Button variant="outline" className="group gap-1.5" aria-label={t("common.status")}>
+
           <CircleDot className="h-4 w-4" />
-          {t("common.status")}
+          <span className="max-w-0 opacity-0 overflow-hidden whitespace-nowrap transition-all duration-200 sm:group-hover:max-w-[140px] sm:group-hover:opacity-100 sm:group-hover:ml-2">
+            {t("common.status")}
+          </span>
           {hasSelection && (
-            <span className="px-1.5 py-0 text-xs bg-secondary rounded-full">
+            <span className="ml-1 sm:ml-0 px-1.5 py-0 text-xs bg-secondary rounded-full">
               {selectedStatuses.length}
             </span>
           )}

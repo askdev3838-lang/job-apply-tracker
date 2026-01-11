@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -58,6 +59,7 @@ export function ApplicationDetail() {
     getApplicationById,
     deleteApplication,
     updateApplication,
+    updateApplicationNotes,
     fetchApplications,
     _hasHydrated,
     isLoading,
@@ -67,6 +69,8 @@ export function ApplicationDetail() {
   const [application, setApplication] = useState<JobApplication | undefined>(
     undefined
   );
+  const [noteDraft, setNoteDraft] = useState("");
+  const [isSavingNote, setIsSavingNote] = useState(false);
 
   const ALL_STATUSES: ApplicationStatus[] = [
     "applied",
@@ -157,6 +161,19 @@ export function ApplicationDetail() {
     await updateApplication(application.id, { status: newStatus });
     setApplication(getApplicationById(application.id));
     toast.success(t("application.updateSuccess"));
+  };
+
+  const handleAddNote = async () => {
+    if (!noteDraft.trim()) return;
+    setIsSavingNote(true);
+    try {
+      await updateApplicationNotes(application.id, noteDraft);
+      setApplication(getApplicationById(application.id));
+      setNoteDraft("");
+      toast.success(t("application.updateSuccess"));
+    } finally {
+      setIsSavingNote(false);
+    }
   };
 
   return (
@@ -458,7 +475,7 @@ export function ApplicationDetail() {
         )}
 
         {/* Notes */}
-        {application.notes && (
+        {application.notes ? (
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">
@@ -468,6 +485,33 @@ export function ApplicationDetail() {
             <CardContent>
               <div className="whitespace-pre-wrap text-sm">
                 {application.notes}
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">
+                {t("application.addNoteTitle")}
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                {t("application.addNoteDescription")}
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Textarea
+                placeholder={t("application.addNotePlaceholder")}
+                value={noteDraft}
+                onChange={(event) => setNoteDraft(event.target.value)}
+                rows={4}
+              />
+              <div className="flex justify-end">
+                <Button
+                  onClick={handleAddNote}
+                  disabled={!noteDraft.trim() || isSavingNote}
+                >
+                  {t("common.save")}
+                </Button>
               </div>
             </CardContent>
           </Card>

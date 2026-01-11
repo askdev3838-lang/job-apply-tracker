@@ -40,9 +40,12 @@ export function SortDropdown() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" className="gap-2">
+        <Button variant="outline" className="group gap-1.5" aria-label={t("common.sort")}>
+
           <ArrowUpDown className="h-4 w-4" />
-          {t("common.sort")}
+          <span className="max-w-0 opacity-0 overflow-hidden whitespace-nowrap transition-all duration-200 sm:group-hover:max-w-[140px] sm:group-hover:opacity-100 sm:group-hover:ml-2">
+            {t("common.sort")}
+          </span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">

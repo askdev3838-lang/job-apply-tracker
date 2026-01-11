@@ -30,7 +30,9 @@
     "and": "and",
     "optional": "Optional",
     "status": "Status",
-    "clear": "Clear"
+    "clear": "Clear",
+    "listView": "List View",
+    "kanbanView": "Kanban View"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -77,7 +79,10 @@
     "contactNotes": "Notes",
     "notFound": "Application not found",
     "companyDetails": "Company Details",
-    "jobPosting": "View Job Posting"
+    "jobPosting": "View Job Posting",
+    "addNoteTitle": "Add a note",
+    "addNoteDescription": "Quickly jot down context without opening the edit form.",
+    "addNotePlaceholder": "Add a note about this application..."
   },
   "status": {
     "applied": "Applied",

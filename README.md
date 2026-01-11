@@ -24,7 +24,9 @@ A modern, full-stack job application tracking system built with Next.js 16 and S
 - **CRUD Operations** - Create, read, update, and delete applications
 - **Status Tracking** - Track applications through 8 different stages:
   - Applied → Test Case → HR Interview → Technical Interview → Management Interview → Offer → Accepted/Rejected
+- **Kanban Board** - Drag and drop applications across stages
 - **Pin Important Applications** - Keep critical applications at the top
+- **Quick Notes** - Add notes directly from the detail view
 - **Contact Management** - Store recruiter and interviewer contact information
 - **Notes & Cover Letters** - Keep detailed notes for each application
 

@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Plus, FileX } from "lucide-react";
+import { Plus, FileX, LayoutGrid, List } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useApplicationStore } from "@/store";
 import { useTranslations } from "next-intl";
@@ -12,6 +12,9 @@ import { FilterModal } from "./filter-modal";
 import { SortDropdown } from "./sort-dropdown";
 import { StatusFilter } from "./status-filter";
 import { Skeleton } from "@/components/ui/skeleton";
+import { KanbanBoard } from "./kanban-board";
+
+const VIEW_MODE_STORAGE_KEY = "job-apply-view-mode";
 
 function ApplicationCardSkeleton() {
   return (
@@ -41,6 +44,11 @@ export function ApplicationsList() {
     isLoading,
   } = useApplicationStore();
   const t = useTranslations();
+  const [viewMode, setViewMode] = useState<"list" | "kanban">(() => {
+    if (typeof window === "undefined") return "list";
+    const stored = window.localStorage.getItem(VIEW_MODE_STORAGE_KEY);
+    return stored === "kanban" ? "kanban" : "list";
+  });
 
   useEffect(() => {
     fetchApplications();
@@ -48,6 +56,14 @@ export function ApplicationsList() {
 
   const filteredApplications = getFilteredApplications();
   const pinnedCount = applications.filter((app) => app.isPinned).length;
+
+  const toggleViewMode = () => {
+    const nextMode = viewMode === "list" ? "kanban" : "list";
+    setViewMode(nextMode);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(VIEW_MODE_STORAGE_KEY, nextMode);
+    }
+  };
 
   // Show skeleton while loading
   if (!_hasHydrated || isLoading) {
@@ -127,6 +143,25 @@ export function ApplicationsList() {
           <StatusFilter />
           <FilterModal />
           <SortDropdown />
+          <Button
+            variant="outline"
+            onClick={toggleViewMode}
+            className="group gap-1.5"
+            aria-label={
+              viewMode === "list" ? t("common.kanbanView") : t("common.listView")
+            }
+          >
+            {viewMode === "list" ? (
+              <LayoutGrid className="h-4 w-4" />
+            ) : (
+              <List className="h-4 w-4" />
+            )}
+            <span className="max-w-0 opacity-0 overflow-hidden whitespace-nowrap transition-all duration-200 sm:group-hover:max-w-[160px] sm:group-hover:opacity-100 sm:group-hover:ml-2">
+              {viewMode === "list"
+                ? t("common.kanbanView")
+                : t("common.listView")}
+            </span>
+          </Button>
         </div>
       </div>
 
@@ -137,11 +172,17 @@ export function ApplicationsList() {
           <p className="text-muted-foreground">{t("common.noResults")}</p>
         </div>
       ) : (
-        <div className="grid gap-4">
-          {filteredApplications.map((application) => (
-            <ApplicationCard key={application.id} application={application} />
-          ))}
-        </div>
+        <>
+          {viewMode === "list" ? (
+            <div className="grid gap-4">
+              {filteredApplications.map((application) => (
+                <ApplicationCard key={application.id} application={application} />
+              ))}
+            </div>
+          ) : (
+            <KanbanBoard applications={filteredApplications} />
+          )}
+        </>
       )}
     </div>
   );

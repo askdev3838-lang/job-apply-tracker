@@ -95,13 +95,19 @@ export function FilterModal() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="gap-2 relative">
+        <Button
+          variant="outline"
+          className="group gap-1.5 relative"
+          aria-label={t("common.filter")}
+        >
           <Filter className="h-4 w-4" />
-          {t("common.filter")}
+          <span className="max-w-0 opacity-0 overflow-hidden whitespace-nowrap transition-all duration-200 sm:group-hover:max-w-[140px] sm:group-hover:opacity-100 sm:group-hover:ml-2">
+            {t("common.filter")}
+          </span>
           {activeFiltersCount > 0 && (
             <Badge
               variant="secondary"
-              className="ml-1 h-5 w-5 p-0 flex items-center justify-center text-xs"
+              className="ml-1 sm:ml-0 h-5 w-5 p-0 flex items-center justify-center text-xs"
             >
               {activeFiltersCount}
             </Badge>

@@ -30,7 +30,9 @@
     "and": "ve",
     "optional": "İsteğe bağlı",
     "status": "Durum",
-    "clear": "Temizle"
+    "clear": "Temizle",
+    "listView": "Liste Görünümü",
+    "kanbanView": "Kanban Görünümü"
   },
   "nav": {
     "dashboard": "Panel",
@@ -77,7 +79,10 @@
     "contactNotes": "Notlar",
     "notFound": "Başvuru bulunamadı",
     "companyDetails": "Şirket Detayları",
-    "jobPosting": "İlanı Görüntüle"
+    "jobPosting": "İlanı Görüntüle",
+    "addNoteTitle": "Not ekle",
+    "addNoteDescription": "Düzenleme sayfasına gitmeden hızlıca not düş.",
+    "addNotePlaceholder": "Bu başvuru için not ekle..."
   },
   "status": {
     "applied": "Başvuruldu",

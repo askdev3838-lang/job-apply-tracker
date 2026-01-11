@@ -27,6 +27,14 @@ interface ApplicationState {
     id: string,
     data: Partial<ApplicationFormData>
   ) => Promise<void>;
+  updateApplicationStatus: (
+    id: string,
+    status: JobApplication["status"]
+  ) => Promise<void>;
+  updateApplicationNotes: (
+    id: string,
+    notes: string
+  ) => Promise<void>;
   deleteApplication: (id: string) => Promise<void>;
   togglePin: (id: string) => Promise<void>;
   setSearchQuery: (query: string) => void;
@@ -99,6 +107,63 @@ export const useApplicationStore = create<ApplicationState>()((set, get) => ({
     } catch (error) {
       set({ error: (error as Error).message, isLoading: false });
       throw error;
+    }
+  },
+
+  updateApplicationStatus: async (id, status) => {
+    const previous = get().applications.find((app) => app.id === id);
+    if (!previous || previous.status === status) return;
+
+    // Optimistic update without toggling global loading state.
+    set((state) => ({
+      applications: state.applications.map((app) =>
+        app.id === id ? { ...app, status } : app
+      ),
+    }));
+
+    try {
+      const updated = await applicationService.update(id, { status });
+      set((state) => ({
+        applications: state.applications.map((app) =>
+          app.id === id ? updated : app
+        ),
+      }));
+    } catch (error) {
+      set((state) => ({
+        applications: state.applications.map((app) =>
+          app.id === id ? previous : app
+        ),
+        error: (error as Error).message,
+      }));
+    }
+  },
+
+  updateApplicationNotes: async (id, notes) => {
+    const previous = get().applications.find((app) => app.id === id);
+    if (!previous) return;
+
+    const nextNotes = notes.trim();
+    // Optimistic update without toggling global loading state.
+    set((state) => ({
+      applications: state.applications.map((app) =>
+        app.id === id ? { ...app, notes: nextNotes } : app
+      ),
+    }));
+
+    try {
+      const updated = await applicationService.update(id, { notes: nextNotes });
+      set((state) => ({
+        applications: state.applications.map((app) =>
+          app.id === id ? updated : app
+        ),
+      }));
+    } catch (error) {
+      set((state) => ({
+        applications: state.applications.map((app) =>
+          app.id === id ? previous : app
+        ),
+        error: (error as Error).message,
+      }));
     }
   },
 
