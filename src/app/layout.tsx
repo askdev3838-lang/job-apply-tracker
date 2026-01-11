@@ -23,6 +23,9 @@ export const metadata: Metadata = {
   title: "Job Apply Track - Track Your Job Applications",
   description:
     "Track and manage your job applications in one place. Never lose track of where you applied.",
+  icons: {
+    icon: "/favicon.ico?v=3",
+  },
 };
 
 export default async function RootLayout({
