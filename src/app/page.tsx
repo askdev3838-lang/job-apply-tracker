@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import Script from "next/script";
 import { Metadata } from "next";
+import { redirect } from "next/navigation";
 import {
   ArrowRight,
   LayoutGrid,
@@ -16,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GifShowcase } from "@/components/layout/gif-showcase";
 import { siteConfig } from "@/config/site";
+import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
   title: "Job Application Tracker",
@@ -48,6 +50,12 @@ const jsonLd = {
 };
 
 export default async function LandingPage() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) {
+    redirect("/applications");
+  }
+
   const t = await getTranslations("landing");
 
   return (

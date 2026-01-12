@@ -22,6 +22,7 @@ export interface Database {
           application_date: string;
           cover_letter: string | null;
           salary_expectation: string | null;
+          resume_path: string | null;
           job_posting_url: string | null;
           job_posting_content: string | null;
           source: string;
