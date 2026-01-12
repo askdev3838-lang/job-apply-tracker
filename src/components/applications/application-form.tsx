@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useForm, useFieldArray } from "react-hook-form";
+import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import { format } from "date-fns";
 import {
   CalendarIcon,
+  ChevronDown,
   Plus,
   Trash2,
   ArrowLeft,
@@ -27,12 +28,18 @@ import {
 } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useApplicationStore, useSettingsStore } from "@/store";
+import { createClient } from "@/lib/supabase/client";
 import { useLocale, useTranslations } from "next-intl";
 import {
   ApplicationFormData,
@@ -40,7 +47,7 @@ import {
   ApplicationStatus,
   JobApplication,
 } from "@/types";
-import { STATUS_ORDER, WORK_TYPE_CONFIG } from "@/config/constants";
+import { STATUS_CONFIG, STATUS_ORDER, WORK_TYPE_CONFIG } from "@/config/constants";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import Link from "next/link";
@@ -82,6 +89,8 @@ const currencyOptions = [
 
 const defaultCurrency = "USD";
 
+const MAX_RESUME_SIZE = 2 * 1024 * 1024;
+
 const extractCurrency = (value?: string) => {
   if (!value) return defaultCurrency;
   const match = value.match(new RegExp(`\b(${currencyOptions.join("|")})\b`));
@@ -99,16 +108,6 @@ const extractNumbers = (value?: string) => {
   return matches.map((entry) => entry.replace(/,/g, ""));
 };
 
-const parseSalaryRange = (value?: string) => {
-  const currency = extractCurrency(value);
-  const numbers = extractNumbers(value);
-  return {
-    currency,
-    min: numbers[0] ?? "",
-    max: numbers[1] ?? "",
-  };
-};
-
 const parseSalaryExpectation = (value?: string) => {
   const currency = extractCurrency(value);
   const numbers = extractNumbers(value);
@@ -116,17 +115,6 @@ const parseSalaryExpectation = (value?: string) => {
     currency,
     amount: numbers[0] ?? "",
   };
-};
-
-const formatSalaryRange = (
-  currency: string,
-  min: string,
-  max: string
-) => {
-  if (!min && !max) return "";
-  if (min && max) return `${currency} ${min}-${max}`;
-  if (min) return `${currency} ${min}`;
-  return `${currency} ${max}`;
 };
 
 const formatSalaryExpectation = (currency: string, amount: string) => {
@@ -139,6 +127,7 @@ export function ApplicationForm({
   isEditing = false,
 }: ApplicationFormProps) {
   const router = useRouter();
+  const supabase = createClient();
   const { addApplication, updateApplication } = useApplicationStore();
   const { getAllSources, getAllIndustries } = useSettingsStore();
   const t = useTranslations();
@@ -149,18 +138,8 @@ export function ApplicationForm({
       ? new Date(application.applicationDate)
       : new Date()
   );
-  const salaryRangeDefaults = parseSalaryRange(application?.companySalaryRange);
   const salaryExpectationDefaults = parseSalaryExpectation(
     application?.salaryExpectation
-  );
-  const [companySalaryCurrency, setCompanySalaryCurrency] = useState(
-    salaryRangeDefaults.currency
-  );
-  const [companySalaryMin, setCompanySalaryMin] = useState(
-    salaryRangeDefaults.min
-  );
-  const [companySalaryMax, setCompanySalaryMax] = useState(
-    salaryRangeDefaults.max
   );
   const [salaryExpectationCurrency, setSalaryExpectationCurrency] = useState(
     salaryExpectationDefaults.currency
@@ -219,31 +198,52 @@ export function ApplicationForm({
   });
 
   const watchStatus = watch("status");
+  const statusStyles = STATUS_CONFIG[watchStatus || "applied"];
   const watchWorkType = watch("workType");
   const watchSource = watch("source");
   const watchIndustry = watch("companyIndustry");
-  const watchSkills = watch("skills") || [];
+  const watchSkillsValue = useWatch({ control, name: "skills" });
+  const watchSkills = useMemo(() => watchSkillsValue ?? [], [watchSkillsValue]);
   const [skillInput, setSkillInput] = useState("");
+  const [resumeFile, setResumeFile] = useState<File | null>(null);
+  const [resumePath, setResumePath] = useState(application?.resumePath || "");
+  const [isResumeUploading, setIsResumeUploading] = useState(false);
+  const [isDragActive, setIsDragActive] = useState(false);
   const [skillSuggestions, setSkillSuggestions] = useState<string[]>([]);
   const [isSkillLoading, setIsSkillLoading] = useState(false);
   const [showSkillSuggestions, setShowSkillSuggestions] = useState(false);
-  const formattedCompanySalaryRange = formatSalaryRange(
-    companySalaryCurrency,
-    companySalaryMin,
-    companySalaryMax
-  );
   const formattedSalaryExpectation = formatSalaryExpectation(
     salaryExpectationCurrency,
     salaryExpectationAmount
   );
 
   useEffect(() => {
-    setValue("companySalaryRange", formattedCompanySalaryRange);
-  }, [formattedCompanySalaryRange, setValue]);
-
-  useEffect(() => {
     setValue("salaryExpectation", formattedSalaryExpectation);
   }, [formattedSalaryExpectation, setValue]);
+
+  const uploadResume = async (applicationId: string) => {
+    if (!resumeFile) return resumePath;
+    setIsResumeUploading(true);
+    try {
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError || !userData.user) {
+        throw new Error("Not authenticated");
+      }
+      const storagePath = `${userData.user.id}/${applicationId}/resume.pdf`;
+      const { error } = await supabase.storage
+        .from("resumes")
+        .upload(storagePath, resumeFile, {
+          contentType: "application/pdf",
+          upsert: true,
+        });
+      if (error) throw error;
+      setResumePath(storagePath);
+      setResumeFile(null);
+      return storagePath;
+    } finally {
+      setIsResumeUploading(false);
+    }
+  };
 
   const addSkill = (skill: string) => {
     const normalized = skill.trim();
@@ -277,11 +277,19 @@ export function ApplicationForm({
 
     try {
       if (isEditing && application) {
-        await updateApplication(application.id, data);
+        const uploadedPath = await uploadResume(application.id);
+        await updateApplication(application.id, {
+          ...data,
+          resumePath: uploadedPath || resumePath || undefined,
+        });
         toast.success(t("application.updateSuccess"));
         router.push(`/applications/${application.id}`);
       } else {
         const id = await addApplication(data);
+        const uploadedPath = await uploadResume(id);
+        if (uploadedPath) {
+          await updateApplication(id, { resumePath: uploadedPath });
+        }
         toast.success(t("application.saveSuccess"));
         router.push(`/applications/${id}`);
       }
@@ -290,6 +298,40 @@ export function ApplicationForm({
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const validateResumeFile = (file: File) => {
+    if (file.type !== "application/pdf") {
+      toast.error(t("application.resumeInvalidType"));
+      return false;
+    }
+    if (file.size > MAX_RESUME_SIZE) {
+      toast.error(t("application.resumeTooLarge"));
+      return false;
+    }
+    return true;
+  };
+
+  const handleResumeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      setResumeFile(null);
+      return;
+    }
+    if (!validateResumeFile(file)) {
+      event.target.value = "";
+      return;
+    }
+    setResumeFile(file);
+  };
+
+  const handleResumeDrop = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    setIsDragActive(false);
+    const file = event.dataTransfer.files?.[0];
+    if (!file) return;
+    if (!validateResumeFile(file)) return;
+    setResumeFile(file);
   };
 
   const addContact = () => {
@@ -307,27 +349,84 @@ export function ApplicationForm({
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <Link
-          href={
-            isEditing && application ? `/applications/${application.id}` : "/applications"
-          }
-        >
-          <Button type="button" variant="ghost" size="icon">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold">
-            {isEditing
-              ? t("application.editApplication")
-              : t("application.newApplication")}
-          </h1>
-          <p className="text-muted-foreground text-sm">
-            {isEditing
-              ? "Update the application details"
-              : "Track a new job application"}
-          </p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-4">
+          <Link
+            href={
+              isEditing && application ? `/applications/${application.id}` : "/applications"
+            }
+          >
+            <Button type="button" variant="ghost" size="icon">
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold">
+              {isEditing
+                ? t("application.editApplication")
+                : t("application.newApplication")}
+            </h1>
+            <p className="text-muted-foreground text-sm">
+              {isEditing
+                ? "Update the application details"
+                : "Track a new job application"}
+            </p>
+          </div>
+        </div>
+        <div className="w-full sm:w-auto">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className={cn(
+                  "gap-2 border-2 font-medium justify-between w-full sm:w-[220px]",
+                  statusStyles.bgColor,
+                  statusStyles.color,
+                  "hover:bg-[inherit] hover:text-[inherit] hover:border-[inherit]"
+                )}
+              >
+                {t(`status.${watchStatus}`)}
+                <ChevronDown className="h-4 w-4 opacity-60" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="start"
+              className="p-3 bg-background/80 backdrop-blur-lg border shadow-lg rounded-xl"
+            >
+              <p className="text-xs text-muted-foreground mb-2 px-1">
+                {t("application.changeStatus")}
+              </p>
+              <div className="flex flex-col gap-1.5">
+                {STATUS_ORDER.map((status) => {
+                  const config = STATUS_CONFIG[status];
+                  const isActive = watchStatus === status;
+                  return (
+                    <button
+                      key={status}
+                      type="button"
+                      onClick={() => setValue("status", status)}
+                      className={cn(
+                        "px-3 py-1.5 text-sm font-medium rounded-md transition-colors cursor-pointer text-left flex items-center gap-2",
+                        isActive
+                          ? "bg-muted/60 text-foreground"
+                          : "text-foreground hover:bg-muted/60"
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "h-2.5 w-2.5 rounded-full bg-current",
+                          STATUS_CONFIG[status].color
+                        )}
+                      />
+                      {t(`status.${status}`)}
+                    </button>
+                  );
+                })}
+              </div>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
@@ -396,48 +495,14 @@ export function ApplicationForm({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="companySalaryRange">
-                {t("application.companySalaryRange")} ({t("common.optional")})
+              <Label htmlFor="jobPostingUrl">
+                {t("application.jobPostingUrl")} ({t("common.optional")})
               </Label>
-              <div className="grid grid-cols-[96px_minmax(0,1fr)_minmax(0,1fr)] gap-2">
-                <Select
-                  value={companySalaryCurrency}
-                  onValueChange={setCompanySalaryCurrency}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Currency" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {currencyOptions.map((currency) => (
-                      <SelectItem key={currency} value={currency}>
-                        {currency}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Input
-                  id="companySalaryRange"
-                  type="number"
-                  min="0"
-                  step="1"
-                  inputMode="numeric"
-                  placeholder="Min"
-                  className="min-w-0"
-                  value={companySalaryMin}
-                  onChange={(event) => setCompanySalaryMin(event.target.value)}
-                />
-                <Input
-                  type="number"
-                  min="0"
-                  step="1"
-                  inputMode="numeric"
-                  placeholder="Max"
-                  className="min-w-0"
-                  value={companySalaryMax}
-                  onChange={(event) => setCompanySalaryMax(event.target.value)}
-                />
-              </div>
-              <input type="hidden" {...register("companySalaryRange")} />
+              <Input
+                id="jobPostingUrl"
+                {...register("jobPostingUrl")}
+                placeholder="linkedin.com/jobs/..."
+              />
             </div>
           </CardContent>
         </Card>
@@ -503,87 +568,6 @@ export function ApplicationForm({
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="skills">
-                {t("application.skills")} ({t("common.optional")})
-              </Label>
-              <Input
-                id="skills"
-                value={skillInput}
-                onChange={(e) => {
-                  setSkillInput(e.target.value);
-                  setShowSkillSuggestions(true);
-                }}
-                onFocus={() => setShowSkillSuggestions(true)}
-                onBlur={() => {
-                  setTimeout(() => setShowSkillSuggestions(false), 100);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    addSkill(skillInput);
-                  }
-                }}
-                placeholder={t("application.skillsHint")}
-              />
-              {showSkillSuggestions && skillInput.trim().length > 0 && (
-                <div className="relative">
-                  <div className="absolute z-10 mt-2 w-full rounded-lg border bg-background shadow-md">
-                    {isSkillLoading ? (
-                      <div className="px-3 py-2 text-sm text-muted-foreground">
-                        {t("common.loading")}
-                      </div>
-                    ) : skillSuggestions.length > 0 ? (
-                      <div className="max-h-48 overflow-auto py-1">
-                        {skillSuggestions.map((suggestion) => (
-                          <button
-                            key={suggestion}
-                            type="button"
-                            className="w-full px-3 py-2 text-left text-sm hover:bg-muted"
-                            onMouseDown={(event) => {
-                              event.preventDefault();
-                              addSkill(suggestion);
-                            }}
-                          >
-                            {suggestion}
-                          </button>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="px-3 py-2 text-sm text-muted-foreground">
-                        {t("application.skillNoMatch")}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-              {watchSkills.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-2">
-                  {watchSkills.map((skill, index) => (
-                    <Badge
-                      key={index}
-                      variant="secondary"
-                      className="gap-1 pr-1"
-                    >
-                      {skill}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setValue(
-                            "skills",
-                            watchSkills.filter((_, i) => i !== index)
-                          );
-                        }}
-                        className="ml-1 rounded-full hover:bg-muted-foreground/20 p-0.5"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  ))}
-                </div>
-              )}
-            </div>
-
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label>{t("application.applicationDate")} *</Label>
@@ -620,29 +604,6 @@ export function ApplicationForm({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="status">{t("application.status")} *</Label>
-                <Select
-                  value={watchStatus}
-                  onValueChange={(value) =>
-                    setValue("status", value as ApplicationStatus)
-                  }
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {STATUS_ORDER.map((status) => (
-                      <SelectItem key={status} value={status}>
-                        {t(`status.${status}`)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
                 <Label htmlFor="workType">{t("application.workType")} *</Label>
                 <Select
                   value={watchWorkType}
@@ -664,6 +625,89 @@ export function ApplicationForm({
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="skills">
+                  {t("application.skills")} ({t("common.optional")})
+                </Label>
+                <Input
+                  id="skills"
+                  value={skillInput}
+                  onChange={(e) => {
+                    setSkillInput(e.target.value);
+                    setShowSkillSuggestions(true);
+                  }}
+                  onFocus={() => setShowSkillSuggestions(true)}
+                  onBlur={() => {
+                    setTimeout(() => setShowSkillSuggestions(false), 100);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      addSkill(skillInput);
+                    }
+                  }}
+                  placeholder={t("application.skillsHint")}
+                />
+                {showSkillSuggestions && skillInput.trim().length > 0 && (
+                  <div className="relative">
+                    <div className="absolute z-10 mt-2 w-full rounded-lg border bg-background shadow-md">
+                      {isSkillLoading ? (
+                        <div className="px-3 py-2 text-sm text-muted-foreground">
+                          {t("common.loading")}
+                        </div>
+                      ) : skillSuggestions.length > 0 ? (
+                        <div className="max-h-48 overflow-auto py-1">
+                          {skillSuggestions.map((suggestion) => (
+                            <button
+                              key={suggestion}
+                              type="button"
+                              className="w-full px-3 py-2 text-left text-sm hover:bg-muted"
+                              onMouseDown={(event) => {
+                                event.preventDefault();
+                                addSkill(suggestion);
+                              }}
+                            >
+                              {suggestion}
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="px-3 py-2 text-sm text-muted-foreground">
+                          {t("application.skillNoMatch")}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+                {watchSkills.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {watchSkills.map((skill, index) => (
+                      <Badge
+                        key={index}
+                        variant="secondary"
+                        className="gap-1 pr-1"
+                      >
+                        {skill}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setValue(
+                              "skills",
+                              watchSkills.filter((_, i) => i !== index)
+                            );
+                          }}
+                          className="ml-1 rounded-full hover:bg-muted-foreground/20 p-0.5"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
 
               <div className="space-y-2">
                 <Label htmlFor="source">{t("application.source")} *</Label>
@@ -684,37 +728,49 @@ export function ApplicationForm({
                 </Select>
               </div>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Job Posting */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Job Posting</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="jobPostingUrl">
-                {t("application.jobPostingUrl")} ({t("common.optional")})
-              </Label>
-              <Input
-                id="jobPostingUrl"
-                {...register("jobPostingUrl")}
-                placeholder="linkedin.com/jobs/..."
-              />
-            </div>
 
             <div className="space-y-2">
-              <Label htmlFor="jobPostingContent">
-                {t("application.jobPostingContent")} ({t("common.optional")})
+              <Label htmlFor="resume">
+                {t("application.resume")} ({t("common.optional")})
               </Label>
-              <Textarea
-                id="jobPostingContent"
-                {...register("jobPostingContent")}
-                placeholder="Paste the job description here..."
-                rows={6}
-              />
+              <div
+                className={cn(
+                  "flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed px-4 py-6 text-center transition",
+                  isDragActive
+                    ? "border-primary bg-primary/5"
+                    : "border-border/60"
+                )}
+                onDragOver={(event) => {
+                  event.preventDefault();
+                  setIsDragActive(true);
+                }}
+                onDragLeave={() => setIsDragActive(false)}
+                onDrop={handleResumeDrop}
+              >
+                <input
+                  id="resume"
+                  type="file"
+                  accept="application/pdf"
+                  onChange={handleResumeChange}
+                  disabled={isSubmitting || isResumeUploading}
+                  className="hidden"
+                />
+                <label
+                  htmlFor="resume"
+                  className="text-sm font-medium cursor-pointer"
+                >
+                  {resumeFile
+                    ? resumeFile.name
+                    : resumePath
+                      ? t("application.resumeAttached")
+                      : t("application.resumeDrop")}
+                </label>
+                <p className="text-xs text-muted-foreground">
+                  {t("application.resumeHint")}
+                </p>
+              </div>
             </div>
+
           </CardContent>
         </Card>
 
@@ -732,110 +788,112 @@ export function ApplicationForm({
           </CardContent>
         </Card>
 
-        {/* Cover Letter */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">
-              {t("application.coverLetter")}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Textarea
-              {...register("coverLetter")}
-              placeholder="Paste your cover letter here..."
-              rows={8}
-            />
-          </CardContent>
-        </Card>
+        <details className="rounded-xl border bg-card">
+          <summary className="flex cursor-pointer items-center justify-between px-6 py-4 text-sm font-medium">
+            <span>{t("application.advanced")}</span>
+            <span className="text-xs text-muted-foreground">
+              {t("application.advancedHint")}
+            </span>
+          </summary>
+          <div className="px-6 pb-6 pt-2 space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="coverLetter">
+                {t("application.coverLetter")} ({t("common.optional")})
+              </Label>
+              <Textarea
+                id="coverLetter"
+                {...register("coverLetter")}
+                placeholder="Paste your cover letter here..."
+                rows={6}
+              />
+            </div>
 
-        {/* Contacts */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-lg">
-              {t("application.contacts")}
-            </CardTitle>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={addContact}
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              {t("application.addContact")}
-            </Button>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {fields.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                No contacts added yet. Click the button above to add one.
-              </p>
-            ) : (
-              fields.map((field, index) => (
-                <div key={field.id} className="border rounded-lg p-4 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium">Contact {index + 1}</span>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => remove(index)}
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </div>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label>{t("application.contactName")}</Label>
-                      <Input
-                        {...register(`contacts.${index}.name`)}
-                        placeholder="e.g., John Doe"
-                      />
+            <div className="rounded-lg border bg-background/60 p-4">
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-sm font-medium">{t("application.contacts")}</p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addContact}
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  {t("application.addContact")}
+                </Button>
+              </div>
+              {fields.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  {t("application.contactsEmpty")}
+                </p>
+              ) : (
+                <div className="space-y-4">
+                  {fields.map((field, index) => (
+                    <div key={field.id} className="border rounded-lg p-4 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium">Contact {index + 1}</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => remove(index)}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label>{t("application.contactName")}</Label>
+                          <Input
+                            {...register(`contacts.${index}.name`)}
+                            placeholder="e.g., John Doe"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>{t("application.contactRole")}</Label>
+                          <Input
+                            {...register(`contacts.${index}.role`)}
+                            placeholder="e.g., Recruiter"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>{t("application.contactEmail")}</Label>
+                          <Input
+                            type="email"
+                            {...register(`contacts.${index}.email`)}
+                            placeholder="email@example.com"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>{t("application.contactPhone")}</Label>
+                          <Input
+                            {...register(`contacts.${index}.phone`)}
+                            placeholder="+1 234 567 8900"
+                          />
+                        </div>
+                        <div className="space-y-2 sm:col-span-2">
+                          <Label>{t("application.contactLinkedIn")}</Label>
+                          <Input
+                            {...register(`contacts.${index}.linkedin`)}
+                            placeholder="https://linkedin.com/in/..."
+                          />
+                        </div>
+                        <div className="space-y-2 sm:col-span-2">
+                          <Label>{t("application.contactNotes")}</Label>
+                          <Textarea
+                            {...register(`contacts.${index}.notes`)}
+                            placeholder="Any notes about this contact..."
+                            rows={2}
+                          />
+                        </div>
+                      </div>
                     </div>
-                    <div className="space-y-2">
-                      <Label>{t("application.contactRole")}</Label>
-                      <Input
-                        {...register(`contacts.${index}.role`)}
-                        placeholder="e.g., Recruiter"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>{t("application.contactEmail")}</Label>
-                      <Input
-                        type="email"
-                        {...register(`contacts.${index}.email`)}
-                        placeholder="email@example.com"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>{t("application.contactPhone")}</Label>
-                      <Input
-                        {...register(`contacts.${index}.phone`)}
-                        placeholder="+1 234 567 8900"
-                      />
-                    </div>
-                    <div className="space-y-2 sm:col-span-2">
-                      <Label>{t("application.contactLinkedIn")}</Label>
-                      <Input
-                        {...register(`contacts.${index}.linkedin`)}
-                        placeholder="https://linkedin.com/in/..."
-                      />
-                    </div>
-                    <div className="space-y-2 sm:col-span-2">
-                      <Label>{t("application.contactNotes")}</Label>
-                      <Textarea
-                        {...register(`contacts.${index}.notes`)}
-                        placeholder="Any notes about this contact..."
-                        rows={2}
-                      />
-                    </div>
-                  </div>
+                  ))}
                 </div>
-              ))
-            )}
-          </CardContent>
-        </Card>
+              )}
+            </div>
+          </div>
+        </details>
       </div>
-
       {/* Submit */}
       <div className="flex justify-end gap-4 max-w-3xl">
         <Link

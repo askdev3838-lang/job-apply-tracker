@@ -7,8 +7,8 @@ export const STATUS_CONFIG: Record<
 > = {
   applied: {
     label: "Applied",
-    color: "text-blue-700 dark:text-blue-400",
-    bgColor: "bg-blue-100 dark:bg-blue-950",
+    color: "text-emerald-700 dark:text-emerald-400",
+    bgColor: "bg-emerald-100 dark:bg-emerald-950",
   },
   test_case: {
     label: "Test Case",

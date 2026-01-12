@@ -18,6 +18,7 @@ export function dbToApplication(row: DbApplication): JobApplication {
     applicationDate: row.application_date,
     coverLetter: row.cover_letter || undefined,
     salaryExpectation: row.salary_expectation || undefined,
+    resumePath: row.resume_path || undefined,
     jobPostingUrl: row.job_posting_url || undefined,
     jobPostingContent: row.job_posting_content || undefined,
     source: row.source,
@@ -47,6 +48,7 @@ export function applicationToDb(
     application_date: app.applicationDate,
     cover_letter: app.coverLetter || null,
     salary_expectation: app.salaryExpectation || null,
+    resume_path: app.resumePath || null,
     job_posting_url: app.jobPostingUrl || null,
     job_posting_content: app.jobPostingContent || null,
     source: app.source,
@@ -124,6 +126,8 @@ export const applicationService = {
       updateData.cover_letter = data.coverLetter || null;
     if (data.salaryExpectation !== undefined)
       updateData.salary_expectation = data.salaryExpectation || null;
+    if (data.resumePath !== undefined)
+      updateData.resume_path = data.resumePath || null;
     if (data.jobPostingUrl !== undefined)
       updateData.job_posting_url = data.jobPostingUrl || null;
     if (data.jobPostingContent !== undefined)

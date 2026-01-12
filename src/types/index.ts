@@ -35,6 +35,7 @@ export interface JobApplication {
   applicationDate: string; // ISO date string
   coverLetter?: string;
   salaryExpectation?: string;
+  resumePath?: string;
   jobPostingUrl?: string;
   jobPostingContent?: string;
   source: string;
@@ -58,6 +59,7 @@ export interface ApplicationFormData {
   applicationDate: string;
   coverLetter?: string;
   salaryExpectation?: string;
+  resumePath?: string;
   jobPostingUrl?: string;
   jobPostingContent?: string;
   source: string;

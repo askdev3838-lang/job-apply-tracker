@@ -15,6 +15,7 @@ import {
   DollarSign,
   Globe,
   Clock,
+  FileText,
   User,
   Mail,
   Phone,
@@ -42,6 +43,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useApplicationStore } from "@/store";
+import { createClient } from "@/lib/supabase/client";
 import { useTranslations } from "next-intl";
 import { STATUS_CONFIG, WORK_TYPE_CONFIG } from "@/config/constants";
 import { cn } from "@/lib/utils";
@@ -56,7 +58,7 @@ export function ApplicationDetail() {
   const {
     getApplicationById,
     deleteApplication,
-    updateApplication,
+    updateApplicationStatus,
     updateApplicationNotes,
     fetchApplications,
     _hasHydrated,
@@ -69,6 +71,7 @@ export function ApplicationDetail() {
   );
   const [noteDraft, setNoteDraft] = useState("");
   const [isSavingNote, setIsSavingNote] = useState(false);
+  const [isResumeLoading, setIsResumeLoading] = useState(false);
 
   const ALL_STATUSES: ApplicationStatus[] = [
     "applied",
@@ -156,9 +159,28 @@ export function ApplicationDetail() {
   };
 
   const handleStatusChange = async (newStatus: ApplicationStatus) => {
-    await updateApplication(application.id, { status: newStatus });
+    await updateApplicationStatus(application.id, newStatus);
     setApplication(getApplicationById(application.id));
     toast.success(t("application.updateSuccess"));
+  };
+
+  const handleResumeDownload = async () => {
+    if (!application?.resumePath) return;
+    setIsResumeLoading(true);
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase.storage
+        .from("resumes")
+        .createSignedUrl(application.resumePath, 60);
+      if (error || !data?.signedUrl) {
+        throw error || new Error("Failed to get resume link");
+      }
+      window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+    } catch (error) {
+      toast.error((error as Error).message);
+    } finally {
+      setIsResumeLoading(false);
+    }
   };
 
   const handleAddNote = async () => {
@@ -223,7 +245,7 @@ export function ApplicationDetail() {
                   "gap-2 border-2 font-medium",
                   statusConfig.bgColor,
                   statusConfig.color,
-                  "hover:opacity-90"
+                  "hover:bg-[inherit] hover:text-[inherit] hover:border-[inherit]"
                 )}
               >
                 {t(`status.${application.status}`)}
@@ -246,14 +268,18 @@ export function ApplicationDetail() {
                       key={status}
                       onClick={() => handleStatusChange(status)}
                       className={cn(
-                        "px-3 py-1.5 text-sm font-medium rounded-full transition-all cursor-pointer text-left",
-                        config.bgColor,
-                        config.color,
+                        "px-3 py-1.5 text-sm font-medium rounded-md transition-colors cursor-pointer text-left flex items-center gap-2",
                         isActive
-                          ? "ring-2 ring-inset ring-primary/50"
-                          : "hover:brightness-95"
+                          ? "bg-muted/60 text-foreground"
+                          : "text-foreground hover:bg-muted/60"
                       )}
                     >
+                      <span
+                        className={cn(
+                          "h-2.5 w-2.5 rounded-full bg-current",
+                          STATUS_CONFIG[status].color
+                        )}
+                      />
                       {t(`status.${status}`)}
                     </button>
                   );
@@ -371,6 +397,21 @@ export function ApplicationDetail() {
                   {format(new Date(application.updatedAt), "MMM d, yyyy HH:mm")}
                 </span>
               </div>
+              {application.resumePath && (
+                <div className="flex items-center gap-2 text-sm">
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleResumeDownload}
+                    disabled={isResumeLoading}
+                  >
+                    {t("application.resumeDownload")}
+                  </Button>
+                </div>
+              )}
+
             </CardContent>
           </Card>
         </div>

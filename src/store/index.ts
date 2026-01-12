@@ -170,9 +170,14 @@ export const useApplicationStore = create<ApplicationState>()((set, get) => ({
   deleteApplication: async (id) => {
     set({ isLoading: true, error: null });
     try {
+      const app = get().applications.find((item) => item.id === id);
+      if (app?.resumePath) {
+        const supabase = createClient();
+        await supabase.storage.from("resumes").remove([app.resumePath]);
+      }
       await applicationService.delete(id);
       set((state) => ({
-        applications: state.applications.filter((app) => app.id !== id),
+        applications: state.applications.filter((item) => item.id !== id),
         isLoading: false,
       }));
     } catch (error) {
