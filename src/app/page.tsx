@@ -23,11 +23,7 @@ export const metadata: Metadata = {
   title: "Job Application Tracker",
   description: siteConfig.description,
   alternates: { canonical: "/" },
-  openGraph: {
-    title: siteConfig.title,
-    description: siteConfig.description,
-    url: siteConfig.url,
-  },
+
   twitter: {
     title: siteConfig.title,
     description: siteConfig.description,
