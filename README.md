@@ -242,6 +242,7 @@ This project is open source and available under the [MIT License](LICENSE).
 
 - Website: [berkinduz.com](https://berkinduz.com)
 - GitHub: [@berkinduz](https://github.com/berkinduz)
+- ☕ [Buy me a coffee](https://buymeacoffee.com/berkinduz)
 
 ---
 
